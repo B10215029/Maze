@@ -15,7 +15,7 @@
      Platform:    Visio Studio.Net 2003 (converted to 2005)
 
 *************************************************************************/
-#include <stdio.h>
+//#include <stdio.h>
 #include "Vertex.h"
 
 const char  Vertex::X = 0;

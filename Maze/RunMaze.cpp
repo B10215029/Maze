@@ -128,12 +128,12 @@ int main(int argc, char *argv[])
 
 	// Create the window that displays the 3D view.
 	maze_window = 
-		new MazeWindow(MAP_WINDOW_W + 10, 0, MAZE_WINDOW_W,
+		new MazeWindow(MAP_WINDOW_W + 150, 100, MAZE_WINDOW_W,
 							MAZE_WINDOW_H, "Maze View", NULL);
 	maze_window->show();
 
 	// Create the map window.
-	window = new Fl_Window(0, 0, MAP_WINDOW_W, MAP_WINDOW_H, "Map View");
+	window = new Fl_Window(100, 100, MAP_WINDOW_W, MAP_WINDOW_H, "Map View");
 	window->begin();
 
 	load_button = new Fl_Button(GAP, GAP, BUTTON_W, BUTTON_H, "Load Maze");

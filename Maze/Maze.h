@@ -117,6 +117,7 @@ class Maze {
 		void    Find_View_Cell(Cell*);
 
 	private:
+	public:
 		Cell				*view_cell;// The cell that currently contains the view
 										  // point. You will need to use this.
 		unsigned int    frame_num;	// The frame number we are currently drawing.

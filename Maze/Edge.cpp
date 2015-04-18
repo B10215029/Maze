@@ -15,7 +15,7 @@
 
 *************************************************************************/
 
-#include <stdio.h>
+//#include <stdio.h>
 #include "Edge.h"
 #include "Cell.h"
 
@@ -41,7 +41,7 @@ Edge(int i, Vertex *start, Vertex *end, float r, float g, float b)
 	endpoints[START] = start;
 	endpoints[END] = end;
 
-	neighbors[0] = neighbors[1] = NULL;
+	neighbors[0] = neighbors[1] = 0;
 
 	opaque = true;
 

@@ -1,0 +1,8 @@
+*.sdf
+*.suo
+*.user
+ipch/
+Debug/
+Release/
+Maze/Debug/
+Maze/Release/

@@ -22,6 +22,7 @@
 #include <Fl/gl.h>
 #include <GL/glu.h>
 #include <stdio.h>
+#include "LineSeg.h"
 
 
 //*************************************************************************
@@ -55,7 +56,9 @@ Set_Maze(Maze *m)
 	// Force a redraw
 	redraw();
 }
+void draw_cell(){
 
+}
 
 //*************************************************************************
 //
@@ -111,14 +114,60 @@ draw(void)
 		// field of view and the size of the image in view space. Note
 		// the static member function of the Maze class for converting
 		// radians to degrees. There is also one defined for going backwards.
-		focal_length = w()
-						 / (float)(2.0*tan(Maze::To_Radians(maze->viewer_fov)*0.5));
+		focal_length = w() / (float)(2.0*tan(Maze::To_Radians(maze->viewer_fov)*0.5));
 	
 		// Draw the 3D view of the maze (the visible walls.) You write this.
 		// Note that all the information that is required to do the
 		// transformations and projection is contained in the Maze class,
 		// plus the focal length.
-		maze->Draw_View(focal_length);
+		//maze->Draw_View(focal_length);
+
+		float mMat[16]={//model
+			cos(Maze::To_Radians(maze->viewer_dir)),0,-sin(Maze::To_Radians(maze->viewer_dir)), -maze->viewer_posn[1]*cos(Maze::To_Radians(maze->viewer_dir))+-maze->viewer_posn[0]*-sin(Maze::To_Radians(maze->viewer_dir)),
+			0,	1,	0,	-maze->viewer_posn[2],
+			-sin(Maze::To_Radians(maze->viewer_dir)),0,-cos(Maze::To_Radians(maze->viewer_dir)),  -maze->viewer_posn[1]*-sin(Maze::To_Radians(maze->viewer_dir))+-maze->viewer_posn[0]*cos(Maze::To_Radians(maze->viewer_dir)),
+			0,	0,	0,	1
+		};
+
+		glBegin(GL_QUADS);
+		
+		for(int edgeIndex=0;edgeIndex<4;edgeIndex++){
+			//float crossPra=LineSeg(maze->view_cell->edges[edgeIndex]).Cross_Param(LineSeg(maze->viewer_posn[0],maze->viewer_posn[1],maze->viewer_posn[0]+focal_length*sin(maze->viewer_fov/2),maze->viewer_posn[1]+focal_length*cos(maze->viewer_fov/2)));
+			float crossPra=LineSeg(LineSeg(maze->viewer_posn[0],maze->viewer_posn[1],maze->viewer_posn[0]+focal_length*sin(maze->viewer_fov/2),maze->viewer_posn[1]+focal_length*cos(maze->viewer_fov/2))).Cross_Param(maze->view_cell->edges[edgeIndex]);
+			if(0<crossPra&&crossPra<1){
+				if (maze->view_cell->edges[edgeIndex]->opaque) {
+					glColor3fv(maze->view_cell->edges[edgeIndex]->color);
+					float sp[4][4]={
+						{maze->view_cell->edges[edgeIndex]->endpoints[0]->posn[1],1,maze->view_cell->edges[edgeIndex]->endpoints[0]->posn[0],1},
+						{maze->view_cell->edges[edgeIndex]->endpoints[0]->posn[1],-1,maze->view_cell->edges[edgeIndex]->endpoints[0]->posn[0],1},
+						{maze->view_cell->edges[edgeIndex]->endpoints[1]->posn[1],1,maze->view_cell->edges[edgeIndex]->endpoints[1]->posn[0],1},
+						{maze->view_cell->edges[edgeIndex]->endpoints[1]->posn[1],-1,maze->view_cell->edges[edgeIndex]->endpoints[1]->posn[0],1}
+					};
+					float sp2[4][4];
+					for(int i=0;i<4;i++){
+						for(int j=0;j<4;j++){
+							sp2[i][j]=mMat[j*4+0]*sp[i][0]+mMat[j*4+1]*sp[i][1]+mMat[j*4+2]*sp[i][2]+mMat[j*4+3]*sp[i][3];
+						}
+					}
+					for(int i=0;i<4;i++){
+						sp2[i][0]/=sp2[i][2]/focal_length;
+						sp2[i][1]/=sp2[i][2]/focal_length;
+					}
+					glVertex2fv(sp2[0]);
+					glVertex2fv(sp2[1]);
+					glVertex2fv(sp2[3]);
+					glVertex2fv(sp2[2]);
+
+				}
+			}
+
+		}
+
+
+
+		glEnd();
+
+
 	}
 }
 

@@ -19,6 +19,7 @@
 
 #include "Vertex.h"
 
+class Cell;
 class Edge {
 
 	public:
@@ -29,13 +30,13 @@ class Edge {
 	public:
 		// Add a cell to the neighbors of this edge. Valid values for
 		// which_one are Edge::LEFT or Edge::RIGHT.
-		void	Add_Cell(class Cell *cell, const char which_one){ 
+		void	Add_Cell(Cell *cell, const char which_one){ 
 			neighbors[which_one] = cell; 
 		};
 
 		// Given a cell, return the neighboring cell across this edge.
 		// This is very useful.
-		class Cell*	Neighbor(class Cell *cell) { 
+		Cell*	Neighbor(Cell *cell) { 
 			return cell == neighbors[LEFT] ? neighbors[RIGHT] : neighbors[LEFT]; 
 		};
 
@@ -44,7 +45,7 @@ class Edge {
 		// The left side of the edge is the side that would be on the left
 		// if you were standing at the START of the edge and looking along it,
 		// with your head in the z direction.
-		char	Cell_Side(class Cell*);
+		char	Cell_Side(Cell*);
 
 		// Returns which side of the edge the line (x,y) is on. The return value
 		// is one of the constants defined above (LEFT, RIGHT, ON). See above
