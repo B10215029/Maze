@@ -23,6 +23,7 @@
 #include <GL/glu.h>
 #include <stdio.h>
 #include "LineSeg.h"
+#include "Edge.h"
 
 
 //*************************************************************************
@@ -56,8 +57,176 @@ Set_Maze(Maze *m)
 	// Force a redraw
 	redraw();
 }
-void draw_cell(){
+void MazeWindow::draw_cell(Cell* drawCell, Edge viewLineR, Edge viewLineL, float focal_length){
+	printf(".\n%f   %f->%d\n",
+		(viewLineL.endpoints[1]->posn[1]-viewLineL.endpoints[0]->posn[1])/
+		(viewLineL.endpoints[1]->posn[0]-viewLineL.endpoints[0]->posn[0]),
+		(viewLineR.endpoints[1]->posn[1]-viewLineR.endpoints[0]->posn[1])/
+		(viewLineR.endpoints[1]->posn[0]-viewLineR.endpoints[0]->posn[0]),drawCell->index);
+	float gCos=cos(Maze::To_Radians(maze->viewer_dir));
+	float gSin=sin(Maze::To_Radians(maze->viewer_dir));
+	float mMat[16]={//model
+		gCos,	0,	-gSin,	-maze->viewer_posn[1]*gCos-maze->viewer_posn[0]*-gSin,
+		0,		1,	0,		-maze->viewer_posn[2],
+		-gSin,	0,	-gCos,	-maze->viewer_posn[1]*-gSin-maze->viewer_posn[0]*-gCos,
+		0,		0,	0,		1
+	};
+	for(int edgeIndex=0;edgeIndex<4;edgeIndex++){
+		float crossParR1=LineSeg(&viewLineR).Cross_Param(LineSeg(drawCell->edges[edgeIndex]));
+		float crossParR2=LineSeg(drawCell->edges[edgeIndex]).Cross_Param(LineSeg(&viewLineR));
+		float crossParL1=LineSeg(&viewLineL).Cross_Param(LineSeg(drawCell->edges[edgeIndex]));
+		float crossParL2=LineSeg(drawCell->edges[edgeIndex]).Cross_Param(LineSeg(&viewLineL));
+		float p[2][2];
+		p[0][0]=drawCell->edges[edgeIndex]->endpoints[0]->posn[0];
+		p[0][1]=drawCell->edges[edgeIndex]->endpoints[0]->posn[1];
+		p[1][0]=drawCell->edges[edgeIndex]->endpoints[1]->posn[0];
+		p[1][1]=drawCell->edges[edgeIndex]->endpoints[1]->posn[1];
+		bool crossR=0.<crossParR1&&crossParR1<1.&&0.<crossParR2&&crossParR2<1.;
+		bool crossL=0.<crossParL1&&crossParL1<1.&&0.<crossParL2&&crossParL2<1.;
+		bool includeRL=!crossR&&!crossL&&(
+			viewLineR.Point_Side(p[0][0],p[0][1])==0&&viewLineL.Point_Side(p[0][0],p[0][1])==1||
+			viewLineR.Point_Side(p[0][0],p[0][1])==2&&viewLineL.Point_Side(p[0][0],p[0][1])==1||
+			viewLineR.Point_Side(p[0][0],p[0][1])==0&&viewLineL.Point_Side(p[0][0],p[0][1])==2||
+			viewLineR.Point_Side(p[0][0],p[0][1])==2&&viewLineL.Point_Side(p[0][0],p[0][1])==2
+			);
+		if((crossR||crossL||includeRL)&&drawCell->edges[edgeIndex]->drawFram!=maze->frame_num){
+			drawCell->edges[edgeIndex]->drawFram=maze->frame_num;
+			//clip wall
+			if(crossR&&crossL){
+				if(viewLineR.Point_Side(p[0][0],p[0][1])){
+					float tp[2]={p[0][0],p[0][1]};
+					p[0][0]=p[0][0]+(p[1][0]-p[0][0])*crossParR2;
+					p[0][1]=p[0][1]+(p[1][1]-p[0][1])*crossParR2;
 
+					p[1][0]=tp[0]+(p[1][0]-tp[0])*crossParL2;
+					p[1][1]=tp[1]+(p[1][1]-tp[1])*crossParL2;
+				}
+				else{
+					float tp[2]={p[1][0],p[1][1]};
+					p[1][0]=p[0][0]+(p[1][0]-p[0][0])*crossParR2;
+					p[1][1]=p[0][1]+(p[1][1]-p[0][1])*crossParR2;
+
+					p[0][0]=p[0][0]+(tp[0]-p[0][0])*crossParL2;
+					p[0][1]=p[0][1]+(tp[1]-p[0][1])*crossParL2;
+				}
+			}
+			if(crossR&&!crossL){
+				if(viewLineR.Point_Side(p[0][0],p[0][1])){
+					p[0][0]=p[0][0]+(p[1][0]-p[0][0])*crossParR2;
+					p[0][1]=p[0][1]+(p[1][1]-p[0][1])*crossParR2;
+				}
+				else{
+					p[1][0]=p[0][0]+(p[1][0]-p[0][0])*crossParR2;
+					p[1][1]=p[0][1]+(p[1][1]-p[0][1])*crossParR2;
+				}
+			}
+			if(!crossR&&crossL){
+				if(viewLineL.Point_Side(p[0][0],p[0][1])){
+					p[1][0]=p[0][0]+(p[1][0]-p[0][0])*crossParL2;
+					p[1][1]=p[0][1]+(p[1][1]-p[0][1])*crossParL2;
+				}
+				else{
+					p[0][0]=p[0][0]+(p[1][0]-p[0][0])*crossParL2;
+					p[0][1]=p[0][1]+(p[1][1]-p[0][1])*crossParL2;
+				}
+			}
+// 			printf("VL %f, %f\n",viewLineL.endpoints[1]->posn[0],viewLineL.endpoints[1]->posn[1]);
+// 			printf("VR %f, %f\n",viewLineR.endpoints[1]->posn[0],viewLineR.endpoints[1]->posn[1]);
+// 			printf("O  %f, %f, %f, %f\n",drawCell->edges[edgeIndex]->endpoints[0]->posn[0],drawCell->edges[edgeIndex]->endpoints[0]->posn[1],drawCell->edges[edgeIndex]->endpoints[1]->posn[0],drawCell->edges[edgeIndex]->endpoints[1]->posn[1]);
+// 			printf("P  %f, %f, %f, %f\n",p[0][0],p[0][1],p[1][0],p[1][1]);
+// 			printf("C  %f, %f\n",crossParL2,crossParR2);
+			//draw wall
+			if (drawCell->edges[edgeIndex]->opaque) {
+				float sp[4][4]={
+					{p[0][1], 1,p[0][0],1},
+					{p[0][1],-1,p[0][0],1},
+					{p[1][1], 1,p[1][0],1},
+					{p[1][1],-1,p[1][0],1}
+				};
+				float sp2[4][4];
+				for(int i=0;i<4;i++){
+					for(int j=0;j<4;j++){
+						sp2[i][j]=mMat[j*4+0]*sp[i][0]+mMat[j*4+1]*sp[i][1]+mMat[j*4+2]*sp[i][2]+mMat[j*4+3]*sp[i][3];
+					}
+				}
+				for(int i=0;i<4;i++){
+					sp2[i][0]*=focal_length/sp2[i][2];
+					sp2[i][1]*=focal_length/sp2[i][2];
+				}
+				glColor3fv(drawCell->edges[edgeIndex]->color);
+				glBegin(GL_QUADS);
+				glVertex2fv(sp2[0]);
+				glVertex2fv(sp2[1]);
+				glVertex2fv(sp2[3]);
+				glVertex2fv(sp2[2]);
+				glEnd();
+			}
+			else{
+				if(drawCell->edges[edgeIndex]->Neighbor(drawCell)){
+					printf("%dtoCELL%d\n",drawCell->index,drawCell->edges[edgeIndex]->Neighbor(drawCell)->index);
+					Vertex viewPointO(0,maze->viewer_posn[0],maze->viewer_posn[1]);
+					float np[2][2];
+					float pl[2];
+					np[0][0]=p[0][0]-maze->viewer_posn[0];
+					np[0][1]=p[0][1]-maze->viewer_posn[1];
+					np[1][0]=p[1][0]-maze->viewer_posn[0];
+					np[1][1]=p[1][1]-maze->viewer_posn[1];
+					pl[0]=sqrt(np[0][0]*np[0][0]+np[0][1]*np[0][1]);
+					pl[1]=sqrt(np[1][0]*np[1][0]+np[1][1]*np[1][1]);
+					np[0][0]*=focal_length/pl[0];
+					np[0][1]*=focal_length/pl[0];
+					np[1][0]*=focal_length/pl[1];
+					np[1][1]*=focal_length/pl[1];
+					printf("O  %f, %f, %f, %f\n",drawCell->edges[edgeIndex]->endpoints[0]->posn[0],drawCell->edges[edgeIndex]->endpoints[0]->posn[1],drawCell->edges[edgeIndex]->endpoints[1]->posn[0],drawCell->edges[edgeIndex]->endpoints[1]->posn[1]);
+					printf("P  %f, %f, %f, %f\n",p[0][0],p[0][1],p[1][0],p[1][1]);
+					printf("CD %d, %d, %d\n",crossL,crossR,includeRL);
+					printf("nc %f, %f\n",LineSeg(p[0][0],p[0][1],p[1][0],p[1][1]).Cross_Param(LineSeg(&viewLineR)),LineSeg(&viewLineR).Cross_Param(LineSeg(p[0][0],p[0][1],p[1][0],p[1][1])));
+					if(LineSeg(p[0][0],p[0][1],p[1][0],p[1][1]).Cross_Param(LineSeg(&viewLineR))<=0.01&&
+						LineSeg(&viewLineR).Cross_Param(LineSeg(p[0][0],p[0][1],p[1][0],p[1][1]))>=0.){
+						printf("CO %f, %f, %f, %f\n",crossParL2,crossParR2,crossParL1,crossParR1);
+//						float rateR=sqrt((maze->viewer_posn[0]-p[0][0])*(maze->viewer_posn[0]-p[0][0])+(maze->viewer_posn[1]-p[0][1])*(maze->viewer_posn[1]-p[0][1]));
+//						float rateL=sqrt((maze->viewer_posn[0]-p[1][0])*(maze->viewer_posn[0]-p[1][0])+(maze->viewer_posn[1]-p[1][1])*(maze->viewer_posn[1]-p[1][1]));
+
+						Vertex nextViewPointR(0,np[0][0]+maze->viewer_posn[0],np[0][1]+maze->viewer_posn[1]);
+						Vertex nextViewPointL(0,np[1][0]+maze->viewer_posn[0],np[1][1]+maze->viewer_posn[1]);
+// 						Vertex nextViewPointR(0,p[0][0]*10-maze->viewer_posn[0]*9,p[0][1]*10-maze->viewer_posn[0]*9);
+//						Vertex nextViewPointL(0,p[1][0]*10-maze->viewer_posn[0]*9,p[1][1]*10-maze->viewer_posn[0]*9);
+						//Vertex nextViewPointR(0,p[0][0],p[0][1]);
+						//Vertex nextViewPointL(0,p[1][0],p[1][1]);
+
+						Edge nextViewLineR(0,&viewPointO,&nextViewPointR,0,0,0);
+						Edge nextViewLineL(0,&viewPointO,&nextViewPointL,0,0,0);
+						draw_cell(drawCell->edges[edgeIndex]->Neighbor(drawCell), nextViewLineR, nextViewLineL, focal_length);
+					}
+					else{
+						printf("C  %f, %f, %f, %f\n",crossParL2,crossParR2,crossParL1,crossParR1);
+						Vertex nextViewPointR(0,np[1][0]+maze->viewer_posn[0],np[1][1]+maze->viewer_posn[1]);
+						Vertex nextViewPointL(0,np[0][0]+maze->viewer_posn[0],np[0][1]+maze->viewer_posn[1]);
+//						Vertex nextViewPointR(0,(p[1][0]-maze->viewer_posn[0])*10+maze->viewer_posn[0],(p[1][1]-maze->viewer_posn[1])*10+maze->viewer_posn[1]);
+//						Vertex nextViewPointL(0,(p[0][0]-maze->viewer_posn[0])*10+maze->viewer_posn[0],(p[0][1]-maze->viewer_posn[1])*10+maze->viewer_posn[1]);
+						//Vertex nextViewPointR(0,p[1][0],p[1][1]);
+						//Vertex nextViewPointL(0,p[0][0],p[0][1]);
+//						Vertex nextViewPointR(0,p[1][0]*10-maze->viewer_posn[0]*9,p[1][1]*10-maze->viewer_posn[0]*9);
+//						Vertex nextViewPointL(0,p[0][0]*10-maze->viewer_posn[0]*9,p[0][1]*10-maze->viewer_posn[0]*9);
+
+						Edge nextViewLineR(0,&viewPointO,&nextViewPointR,0,0,0);
+						Edge nextViewLineL(0,&viewPointO,&nextViewPointL,0,0,0);
+						draw_cell(drawCell->edges[edgeIndex]->Neighbor(drawCell), nextViewLineR, nextViewLineL, focal_length);
+					}
+				}
+			}
+		}
+		else{
+			printf("===bad===\n");
+			printf("CELL %d\n",drawCell->index);
+			printf("ei %d\n",edgeIndex);
+			printf("index %d\n",drawCell->edges[edgeIndex]->index);
+			printf("CD %d, %d, %d\n",crossL,crossR,includeRL);
+			printf("C  %f, %f, %f, %f\n",crossParL2,crossParR2,crossParL1,crossParR1);
+			printf("in %d, %d, %d ,%d\n",viewLineR.Point_Side(p[0][0],p[0][1]),viewLineL.Point_Side(p[0][0],p[0][1]),viewLineR.Point_Side(p[1][0],p[1][1]),viewLineL.Point_Side(p[1][0],p[1][1]));
+			printf("===bed===\n");
+		}
+	}
 }
 
 //*************************************************************************
@@ -120,54 +289,15 @@ draw(void)
 		// Note that all the information that is required to do the
 		// transformations and projection is contained in the Maze class,
 		// plus the focal length.
-		//maze->Draw_View(focal_length);
+		maze->Draw_View(focal_length);
 
-		float mMat[16]={//model
-			cos(Maze::To_Radians(maze->viewer_dir)),0,-sin(Maze::To_Radians(maze->viewer_dir)), -maze->viewer_posn[1]*cos(Maze::To_Radians(maze->viewer_dir))+-maze->viewer_posn[0]*-sin(Maze::To_Radians(maze->viewer_dir)),
-			0,	1,	0,	-maze->viewer_posn[2],
-			-sin(Maze::To_Radians(maze->viewer_dir)),0,-cos(Maze::To_Radians(maze->viewer_dir)),  -maze->viewer_posn[1]*-sin(Maze::To_Radians(maze->viewer_dir))+-maze->viewer_posn[0]*cos(Maze::To_Radians(maze->viewer_dir)),
-			0,	0,	0,	1
-		};
-
-		glBegin(GL_QUADS);
-		
-		for(int edgeIndex=0;edgeIndex<4;edgeIndex++){
-			//float crossPra=LineSeg(maze->view_cell->edges[edgeIndex]).Cross_Param(LineSeg(maze->viewer_posn[0],maze->viewer_posn[1],maze->viewer_posn[0]+focal_length*sin(maze->viewer_fov/2),maze->viewer_posn[1]+focal_length*cos(maze->viewer_fov/2)));
-			float crossPra=LineSeg(LineSeg(maze->viewer_posn[0],maze->viewer_posn[1],maze->viewer_posn[0]+focal_length*sin(maze->viewer_fov/2),maze->viewer_posn[1]+focal_length*cos(maze->viewer_fov/2))).Cross_Param(maze->view_cell->edges[edgeIndex]);
-			if(0<crossPra&&crossPra<1){
-				if (maze->view_cell->edges[edgeIndex]->opaque) {
-					glColor3fv(maze->view_cell->edges[edgeIndex]->color);
-					float sp[4][4]={
-						{maze->view_cell->edges[edgeIndex]->endpoints[0]->posn[1],1,maze->view_cell->edges[edgeIndex]->endpoints[0]->posn[0],1},
-						{maze->view_cell->edges[edgeIndex]->endpoints[0]->posn[1],-1,maze->view_cell->edges[edgeIndex]->endpoints[0]->posn[0],1},
-						{maze->view_cell->edges[edgeIndex]->endpoints[1]->posn[1],1,maze->view_cell->edges[edgeIndex]->endpoints[1]->posn[0],1},
-						{maze->view_cell->edges[edgeIndex]->endpoints[1]->posn[1],-1,maze->view_cell->edges[edgeIndex]->endpoints[1]->posn[0],1}
-					};
-					float sp2[4][4];
-					for(int i=0;i<4;i++){
-						for(int j=0;j<4;j++){
-							sp2[i][j]=mMat[j*4+0]*sp[i][0]+mMat[j*4+1]*sp[i][1]+mMat[j*4+2]*sp[i][2]+mMat[j*4+3]*sp[i][3];
-						}
-					}
-					for(int i=0;i<4;i++){
-						sp2[i][0]/=sp2[i][2]/focal_length;
-						sp2[i][1]/=sp2[i][2]/focal_length;
-					}
-					glVertex2fv(sp2[0]);
-					glVertex2fv(sp2[1]);
-					glVertex2fv(sp2[3]);
-					glVertex2fv(sp2[2]);
-
-				}
-			}
-
-		}
-
-
-
-		glEnd();
-
-
+		Vertex viewPointO(0,maze->viewer_posn[0],maze->viewer_posn[1]);
+		Vertex viewPointR(0,maze->viewer_posn[0]+focal_length*cos(Maze::To_Radians(maze->viewer_dir-maze->viewer_fov/2)),maze->viewer_posn[1]+focal_length*sin(Maze::To_Radians(maze->viewer_dir-maze->viewer_fov/2)));
+		Vertex viewPointL(0,maze->viewer_posn[0]+focal_length*cos(Maze::To_Radians(maze->viewer_dir+maze->viewer_fov/2)),maze->viewer_posn[1]+focal_length*sin(Maze::To_Radians(maze->viewer_dir+maze->viewer_fov/2)));
+		Edge viewLineR(0,&viewPointO,&viewPointR,0,0,0);
+		Edge viewLineL(0,&viewPointO,&viewPointL,0,0,0);
+		printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+		draw_cell(maze->view_cell, viewLineR, viewLineL, focal_length);
 	}
 }
 
@@ -254,21 +384,34 @@ handle(int event)
 			x_last = Fl::event_x();
 			y_last = Fl::event_y();
 			return 1;
-			case FL_RELEASE:
+		case FL_RELEASE:
 			down = false;
 			return 1;
 		case FL_KEYBOARD:
-			/*
-			if ( Fl::event_key() == FL_Up )	{
-				z_key = 1;
-				return 1;
-			}
-			if ( Fl::event_key() == FL_Down ){
-				z_key = -1;
-				return 1;
-			}
-			*/
-			return Fl_Gl_Window::handle(event);
+// 			if ( Fl::event_key() == FL_Up )	{
+// 				maze->Move_View_Posn(1, 0, 0);
+// 			}
+// 			if ( Fl::event_key() == FL_Left )	{
+// 				maze->Move_View_Posn(0, 1, 0);
+// 			}
+// 			if ( Fl::event_key() == FL_Down )	{
+// 				maze->Move_View_Posn(-1, 0, 0);
+// 			}
+// 			if ( Fl::event_key() == FL_Right )	{
+// 				maze->Move_View_Posn(0, -1, 0);
+// 			}
+// 			return 1;
+// 			/*
+// 			if ( Fl::event_key() == FL_Up )	{
+// 				z_key = 1;
+// 				return 1;
+// 			}
+// 			if ( Fl::event_key() == FL_Down ){
+// 				z_key = -1;
+// 				return 1;
+// 			}
+// 			*/
+// 			return Fl_Gl_Window::handle(event);
 		case FL_FOCUS:
 		case FL_UNFOCUS:
 			return 1;

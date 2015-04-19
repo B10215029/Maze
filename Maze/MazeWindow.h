@@ -49,7 +49,7 @@ class MazeWindow : public Fl_Gl_Window {
 
 	private:
 		bool	Drag(float);	// The function to call for mouse drag events
-
+		void draw_cell(Cell* drawCell, Edge viewLineR, Edge viewLineL, float focal_length);
 	public:
 		Maze	*maze;	// The maze to work with
 

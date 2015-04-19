@@ -6,3 +6,5 @@ Debug/
 Release/
 Maze/Debug/
 Maze/Release/
+BuildMaze Debug/
+BuildMaze Release/
