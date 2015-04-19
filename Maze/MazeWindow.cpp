@@ -146,8 +146,15 @@ void MazeWindow::draw_cell(Cell* drawCell, Edge viewLineR, Edge viewLineL, float
 				}
 				glColor3fv(drawCell->edges[edgeIndex]->color);
 				glBegin(GL_QUADS);
+				glColor3fv(drawCell->edges[edgeIndex]->color);
 				glVertex2fv(sp2[0]);
 				glVertex2fv(sp2[1]);
+// 				glColor3fv(drawCell->edges[edgeIndex]->color);
+// 				glVertex2f((sp2[1][0]+sp2[3][0])/2,(sp2[1][1]+sp2[3][1])/2);
+// 				glVertex2f((sp2[0][0]+sp2[2][0])/2,(sp2[0][1]+sp2[2][1])/2);
+// 				glVertex2f((sp2[0][0]+sp2[2][0])/2,(sp2[0][1]+sp2[2][1])/2);
+// 				glVertex2f((sp2[1][0]+sp2[3][0])/2,(sp2[1][1]+sp2[3][1])/2);
+// 				glColor3f(1,1,1);
 				glVertex2fv(sp2[3]);
 				glVertex2fv(sp2[2]);
 				glEnd();
