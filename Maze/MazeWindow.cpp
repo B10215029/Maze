@@ -53,7 +53,8 @@ Set_Maze(Maze *m)
 {
 	// Change the maze
 	maze = m;
-
+	viewCell=0;
+	step=-1;
 	// Force a redraw
 	redraw();
 }
@@ -144,17 +145,24 @@ void MazeWindow::draw_cell(Cell* drawCell, Edge viewLineR, Edge viewLineL, float
 					sp2[i][0]*=focal_length/sp2[i][2];
 					sp2[i][1]*=focal_length/sp2[i][2];
 				}
-				glColor3fv(drawCell->edges[edgeIndex]->color);
+// 				glBegin(GL_QUADS);
+// 				glColor3fv(drawCell->edges[edgeIndex]->color);
+// 				glVertex2fv(sp2[0]);
+// 				glVertex2fv(sp2[1]);
+// 				glVertex2fv(sp2[3]);
+// 				glVertex2fv(sp2[2]);
+// 				glEnd();
+				//º¥¼h®ÄªG
 				glBegin(GL_QUADS);
-				glColor3fv(drawCell->edges[edgeIndex]->color);
+				glColor3f(1,1,1);
 				glVertex2fv(sp2[0]);
 				glVertex2fv(sp2[1]);
-// 				glColor3fv(drawCell->edges[edgeIndex]->color);
-// 				glVertex2f((sp2[1][0]+sp2[3][0])/2,(sp2[1][1]+sp2[3][1])/2);
-// 				glVertex2f((sp2[0][0]+sp2[2][0])/2,(sp2[0][1]+sp2[2][1])/2);
-// 				glVertex2f((sp2[0][0]+sp2[2][0])/2,(sp2[0][1]+sp2[2][1])/2);
-// 				glVertex2f((sp2[1][0]+sp2[3][0])/2,(sp2[1][1]+sp2[3][1])/2);
-// 				glColor3f(1,1,1);
+				glColor3fv(drawCell->edges[edgeIndex]->color);
+				glVertex2f((sp2[1][0]+sp2[3][0])/2,(sp2[1][1]+sp2[3][1])/2);
+				glVertex2f((sp2[0][0]+sp2[2][0])/2,(sp2[0][1]+sp2[2][1])/2);
+				glVertex2f((sp2[0][0]+sp2[2][0])/2,(sp2[0][1]+sp2[2][1])/2);
+				glVertex2f((sp2[1][0]+sp2[3][0])/2,(sp2[1][1]+sp2[3][1])/2);
+				glColor3f(1,1,1);
 				glVertex2fv(sp2[3]);
 				glVertex2fv(sp2[2]);
 				glEnd();
@@ -240,7 +248,11 @@ draw(void)
 		// transformations and projection is contained in the Maze class,
 		// plus the focal length.
 		maze->Draw_View(focal_length);
-
+		if(viewCell!=maze->view_cell){
+			viewCell=maze->view_cell;
+			step++;
+			printf("step %d\n",step);
+		}
 		Vertex viewPointO(0,maze->viewer_posn[0],maze->viewer_posn[1]);
 		Vertex viewPointR(0,maze->viewer_posn[0]+focal_length*cos(Maze::To_Radians(maze->viewer_dir-maze->viewer_fov/2)),maze->viewer_posn[1]+focal_length*sin(Maze::To_Radians(maze->viewer_dir-maze->viewer_fov/2)));
 		Vertex viewPointL(0,maze->viewer_posn[0]+focal_length*cos(Maze::To_Radians(maze->viewer_dir+maze->viewer_fov/2)),maze->viewer_posn[1]+focal_length*sin(Maze::To_Radians(maze->viewer_dir+maze->viewer_fov/2)));

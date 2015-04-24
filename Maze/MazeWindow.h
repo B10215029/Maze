@@ -63,7 +63,8 @@ class MazeWindow : public Fl_Gl_Window {
 							// pressed. A value of 1 means move up, a value of -1
 							// means move down. 0 means do nothing.
 		float   d_down;// The view direction when the mouse button was pushed
-
+		Cell *viewCell;
+		int step;
 };
 
 
